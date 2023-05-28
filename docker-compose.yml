@@ -1,0 +1,62 @@
+version: '3.9'
+
+services:
+  mysql:
+    image: mysql:latest
+    container_name: ${PROJECT_NAME}-mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=123456
+      - MYSQL_DATABASE=${PROJECT_NAME}
+      - MYSQL_PASSWORD=123456
+    volumes:
+      - ./mysql:/var/lib/mysql
+    ports:
+      - "3306:3306"
+
+  php-fpm:
+    build:
+      args:
+        - GROUP_ID
+        - GROUP_NAME
+        - USER_ID
+        - USER_NAME
+      context: ./php-fpm
+    volumes:
+      - ${APP_DIR}:${APP_DIR_IN_CONTAINER}
+    container_name: ${PROJECT_NAME}-php-fpm
+    working_dir: ${APP_DIR_IN_CONTAINER}
+    ports:
+      - "9000:9000"
+
+  nginx:
+    build:
+      context: ./nginx
+    volumes:
+      - ${APP_DIR}:${APP_DIR_IN_CONTAINER}
+    container_name: ${PROJECT_NAME}-nginx
+    working_dir: ${APP_DIR_IN_CONTAINER}
+    ports:
+      - "80:80"
+    depends_on:
+      - php-fpm
+
+  node:
+     image: node:latest
+     volumes:
+       - ${APP_DIR}:${APP_DIR_IN_CONTAINER}
+     container_name: ${PROJECT_NAME}-nodejs
+     working_dir: ${APP_DIR_IN_CONTAINER}
+     tty: true
+     ports:
+       - ${APP_PORT:-8081}:8081
+       - "3000:3000"
+
+  redis:
+    image: redis:latest
+    container_name: ${PROJECT_NAME}-redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  mysql_data:
+    driver: local
